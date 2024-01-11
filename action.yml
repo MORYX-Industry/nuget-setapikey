@@ -1,0 +1,43 @@
+# License?
+
+name: 'nuget setapikey'
+description: 'Run `nuget setapikey` for a provided set of package sources'
+author: 'MORYX Industry'
+
+inputs:
+  sources-file:
+    description: 'Path to a text file, contains a list of the sources to set the API key for'
+    required: true
+  nuget-version:
+    required: false
+    default: '6.x'
+  api-key:
+    description: 'API key to set for the provided list of sources'
+    required: true
+  registry-user:
+    required: true
+  registry-pass: 
+    required: true
+
+runs:
+  using: "composite"
+  steps: 
+    - uses: nuget/setup-nuget@v1
+      with:
+        nuget-version: ${{ inputs.nuget-version }}
+  
+    - name: "Set API keys"
+      run: |
+        echo "::add-mask::${{ inputs.registry-user }}"
+        echo "::add-mask::${{ inputs.registry-pass }}"
+        echo "::add-mask::${{ inputs.api-key }}"
+        sed -i 's/\xef\xbb\xbf//' ${{ inputs.sources-file }}
+        while read source; do
+          nuget setapikey ${{ inputs.api-key }} -Source $source
+          nuget sources update -name $source -user ${{ inputs.registry-user }} -pass ${{ inputs.registry-pass }}
+        done < ${{ inputs.sources-file }}
+      shell: bash
+            
+branding:
+  icon: '🗝️'
+  color: 'green'
